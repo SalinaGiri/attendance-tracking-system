@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Upload Expected Attendees to Course Group</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        
+        .upload-container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #555;
+        }
+        
+        input[type="file"], input[type="number"], input[type="text"] {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            font-size: 16px;
+            box-sizing: border-box;
+        }
+        
+        input[type="file"]:focus, input[type="number"]:focus, input[type="text"]:focus {
+            border-color: #4CAF50;
+            outline: none;
+        }
+        
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            width: 100%;
+            margin-top: 10px;
+        }
+        
+        button:hover {
+            background-color: #45a049;
+        }
+        
+        button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        
+        .result {
+            margin-top: 30px;
+            padding: 15px;
+            border-radius: 5px;
+            display: none;
+        }
+        
+        .success {
+            background-color: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+        
+        .error {
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+        
+        .file-info {
+            margin-top: 10px;
+            font-size: 12px;
+            color: #666;
+        }
+        
+        .loading {
+            display: none;
+            text-align: center;
+            margin-top: 10px;
+        }
+        
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3498db;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 2s linear infinite;
+            margin: 0 auto;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .format-info {
+            background-color: #e7f3ff;
+            border: 1px solid #b3d7ff;
+            border-radius: 5px;
+            padding: 15px;
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
+
+        .format-info h3 {
+            margin-top: 0;
+            color: #0066cc;
+        }
+
+        .format-info table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+
+        .format-info th, .format-info td {
+            border: 1px solid #ccc;
+            padding: 8px;
+            text-align: left;
+        }
+
+        .format-info th {
+            background-color: #f0f8ff;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="upload-container">
+        <h1>Upload Expected Attendees to Course Group</h1>
+        
+        <div class="format-info">
+            <h3>Excel File Format</h3>
+            <p>Please ensure your Excel file has the following format:</p>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Column A</th>
+                        <th>Column B</th>
+                        <th>Column C</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Last Name</td>
+                        <td>First Name</td>
+                        <td>Student Number</td>
+                    </tr>
+                    <tr>
+                        <td>Doe</td>
+                        <td>John</td>
+                        <td>r1234567</td>
+                    </tr>
+                    <tr>
+                        <td>Smith</td>
+                        <td>Jane</td>
+                        <td>r2345678</td>
+                    </tr>
+                </tbody>
+            </table>
+            <p><strong>Note:</strong> Student numbers must be in format 'r' followed by 7 digits (e.g., r1234567)</p>
+        </div>
+
+        <form id="uploadForm" enctype="multipart/form-data">
+            <div class="form-group">
+                <label for="file">Select Excel File (.xlsx or .xls):</label>
+                <input type="file" id="file" name="file" accept=".xlsx,.xls" required>
+                <div class="file-info">
+                    Only .xlsx and .xls files are accepted
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label for="courseId">Course ID:</label>
+                <input type="number" id="courseId" name="courseId" placeholder="Enter the course ID" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="groupName">Group Name:</label>
+                <input type="text" id="groupName" name="groupName" placeholder="Enter the group name" required>
+            </div>
+            
+            <button type="submit" id="submitBtn">Upload Expected Attendees</button>
+            
+            <div class="loading" id="loading">
+                <div class="spinner"></div>
+                <p>Processing file...</p>
+            </div>
+        </form>
+        
+        <div id="result" class="result"></div>
+    </div>
+
+    <script>
+        document.getElementById('uploadForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const formData = new FormData();
+            const fileInput = document.getElementById('file');
+            const courseIdInput = document.getElementById('courseId');
+            const groupNameInput = document.getElementById('groupName');
+            const submitBtn = document.getElementById('submitBtn');
+            const loading = document.getElementById('loading');
+            const result = document.getElementById('result');
+            
+            // Validate inputs
+            if (!fileInput.files[0]) {
+                showResult('Please select a file', 'error');
+                return;
+            }
+            
+            if (!courseIdInput.value || !groupNameInput.value) {
+                showResult('Please enter both Course ID and Group Name', 'error');
+                return;
+            }
+            
+            // Prepare form data
+            formData.append('file', fileInput.files[0]);
+            
+            // Show loading state
+            submitBtn.disabled = true;
+            loading.style.display = 'block';
+            result.style.display = 'none';
+            
+            try {
+                const response = await fetch(`/courses/${courseIdInput.value}/expected-attendees/group/${encodeURIComponent(groupNameInput.value)}`, {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    let message = data.message + '\n';
+                    message += `Successfully added ${data.count} students to the group.\n\n`;
+                    
+                    if (data.students && data.students.length > 0) {
+                        message += 'Added students:\n';
+                        data.students.forEach(student => {
+                            message += `- ${student.name} ${student.lastName} (${student.studentNumber})\n`;
+                        });
+                    }
+                    
+                    showResult(message, 'success');
+                    
+                    // Clear the form
+                    fileInput.value = '';
+                    courseIdInput.value = '';
+                    groupNameInput.value = '';
+                } else {
+                    showResult(data.error || 'An error occurred', 'error');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showResult('Network error: ' + error.message, 'error');
+            } finally {
+                submitBtn.disabled = false;
+                loading.style.display = 'none';
+            }
+        });
+        
+        function showResult(message, type) {
+            const result = document.getElementById('result');
+            result.textContent = message;
+            result.className = `result ${type}`;
+            result.style.display = 'block';
+        }
+        
+        // File validation
+        document.getElementById('file').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const validExtensions = ['.xlsx', '.xls'];
+                const fileExtension = file.name.toLowerCase().substr(file.name.lastIndexOf('.'));
+                
+                if (!validExtensions.includes(fileExtension)) {
+                    showResult('Please select a valid Excel file (.xlsx or .xls)', 'error');
+                    e.target.value = '';
+                }
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,19 @@
+{
+  "id": 1,
+  "date": "2025-04-16T08:28:45.260Z",
+  "title": "doInvoke() Causing Laptop Fire",
+  "description": "Lorem ipsum dolor sit amet.",
+  "user": {
+    "username": "johanp"
+  },
+  "comments": [
+    {
+      "id": 1,
+      "date": "2025-04-16T08:28:45.260Z",
+      "description": "It has happened to me yesterday. Disaster!",
+      "user": {
+        "username": "elkes"
+      }
+    }
+  ]
+}

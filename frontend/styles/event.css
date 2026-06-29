@@ -1,0 +1,42 @@
+.topbar {
+    color: green;
+    display: flex;
+    gap: 300px;
+}
+
+
+.add-event-form {
+    color: green;
+    display:flex;
+    flex-direction: column;
+    gap: 5px;
+}
+.button {
+    border-radius: 10px;
+    background-color: rgb(65, 99, 65);
+    color: white;
+    padding: 3px;
+}
+
+.button:hover {
+    transform: scale(1.05);
+}
+
+.input {
+    border-radius: 10px;
+    background-color: rgb(94, 169, 94);
+    color: white;
+    padding: 3px;
+}
+
+input::placeholder {
+  color: white;
+}
+
+.error {
+    color: red;
+}
+
+.success {
+    color: rgb(65, 99, 65);
+}

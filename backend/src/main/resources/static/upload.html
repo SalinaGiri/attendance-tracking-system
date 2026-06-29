@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Registration File Upload</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        
+        .upload-container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #555;
+        }
+        
+        input[type="file"], select, input[type="number"] {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            font-size: 16px;
+            box-sizing: border-box;
+        }
+        
+        input[type="file"]:focus, select:focus, input[type="number"]:focus {
+            border-color: #4CAF50;
+            outline: none;
+        }
+        
+        .upload-btn {
+            background-color: #4CAF50;
+            color: white;
+            padding: 12px 30px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            width: 100%;
+            transition: background-color 0.3s;
+        }
+        
+        .upload-btn:hover {
+            background-color: #45a049;
+        }
+        
+        .upload-btn:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 5px;
+            display: none;
+            white-space: pre-wrap;
+            font-family: monospace;
+            font-size: 14px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        .result.success {
+            background-color: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+        
+        .result.error {
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+        
+        .result.warning {
+            background-color: #fff3cd;
+            border: 1px solid #ffeaa7;
+            color: #856404;
+        }
+        
+        .debug-info {
+            margin-top: 10px;
+            padding: 10px;
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 5px;
+            font-size: 12px;
+            color: #6c757d;
+            white-space: pre-wrap;
+            font-family: monospace;
+        }
+        
+        .debug-toggle {
+            background: none;
+            border: none;
+            color: #007bff;
+            text-decoration: underline;
+            cursor: pointer;
+            font-size: 12px;
+            margin-top: 5px;
+        }
+        
+        .loading {
+            text-align: center;
+            color: #666;
+            display: none;
+        }
+        
+        .file-info {
+            font-size: 14px;
+            color: #666;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="upload-container">
+        <h1>📁 Registration File Upload</h1>
+        
+        <div class="info-section" style="background-color: #e7f3ff; border: 1px solid #b3d9ff; padding: 15px; border-radius: 5px; margin-bottom: 20px;">
+            <h3 style="margin: 0 0 10px 0; color: #0066cc;">📋 Excel File Format Requirements</h3>
+            <p style="margin: 5px 0; font-size: 14px;">Your Excel file should have these columns in order:</p>
+            <ul style="margin: 10px 0; padding-left: 20px; font-size: 13px;">
+                <li><strong>Column A:</strong> Username</li>
+                <li><strong>Column B:</strong> First Name</li>
+                <li><strong>Column C:</strong> Last Name</li>
+                <li><strong>Column D:</strong> Email (required - must exist in system)</li>
+                <li><strong>Column L:</strong> Timestamp (optional - current time if empty)</li>
+            </ul>
+            <p style="margin: 5px 0; font-size: 12px; color: #666;">💡 <em>First row is treated as header and will be skipped</em></p>
+        </div>
+        
+        <form id="uploadForm" enctype="multipart/form-data">
+            <div class="form-group">
+                <label for="file">Choose Excel File (.xlsx or .xls):</label>
+                <input type="file" id="file" name="file" accept=".xlsx,.xls" required>
+                <div class="file-info">Only Excel files are accepted</div>
+            </div>
+            
+            <div class="form-group">
+                <label for="type">Registration Type:</label>
+                <select id="type" name="type" required>
+                    <option value="">Select type...</option>
+                    <option value="Checkin">Checkin</option>
+                    <option value="Checkout">Checkout</option>
+                    <option value="LunchCheckin">Lunch Checkin</option>
+                    <option value="LunchCheckout">Lunch Checkout</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="eventId">Event ID (optional):</label>
+                <input type="number" id="eventId" name="eventId" placeholder="Enter event ID (optional)">
+            </div>
+            
+            <button type="submit" class="upload-btn">
+                📤 Upload File
+            </button>
+        </form>
+        
+        <div class="loading" id="loading">
+            <p>⏳ Uploading file...</p>
+        </div>
+        
+        <div class="result" id="result"></div>
+        <div class="debug-info" id="debugInfo" style="display: none;"></div>
+    </div>
+
+    <script>
+        let debugMode = false;
+        
+        document.getElementById('uploadForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const formData = new FormData();
+            const fileInput = document.getElementById('file');
+            const typeInput = document.getElementById('type');
+            const eventIdInput = document.getElementById('eventId');
+            const loadingDiv = document.getElementById('loading');
+            const resultDiv = document.getElementById('result');
+            const debugDiv = document.getElementById('debugInfo');
+            const submitBtn = document.querySelector('.upload-btn');
+            
+            // Clear previous results
+            debugDiv.style.display = 'none';
+            debugDiv.innerHTML = '';
+            
+            // Validate file selection
+            if (!fileInput.files[0]) {
+                showResult('❌ Validation Error: Please select a file to upload.', 'error');
+                return;
+            }
+            
+            const file = fileInput.files[0];
+            const fileName = file.name;
+            const fileSize = file.size;
+            const fileType = file.type;
+            
+            // Log debug info
+            const debugInfo = {
+                fileName: fileName,
+                fileSize: `${(fileSize / (1024 * 1024)).toFixed(2)} MB`,
+                fileType: fileType,
+                registrationType: typeInput.value,
+                eventId: eventIdInput.value || 'Not provided',
+                timestamp: new Date().toLocaleString()
+            };
+            
+            logDebug('📋 Upload Request Debug Info:', debugInfo);
+            
+            // Validate file type
+            if (!fileName.endsWith('.xlsx') && !fileName.endsWith('.xls')) {
+                showResult('❌ File Type Error: Please select an Excel file (.xlsx or .xls).', 'error');
+                logDebug('❌ File validation failed', { actualType: fileType, fileName: fileName });
+                return;
+            }
+            
+            // Validate file size (50MB limit)
+            if (fileSize > 50 * 1024 * 1024) {
+                showResult('❌ File Size Error: File too large. Maximum size is 50MB.', 'error');
+                logDebug('❌ File size validation failed', { size: debugInfo.fileSize });
+                return;
+            }
+            
+            // Validate type selection
+            if (!typeInput.value) {
+                showResult('❌ Validation Error: Please select a registration type.', 'error');
+                return;
+            }
+            
+            // Prepare form data
+            formData.append('file', file);
+            formData.append('type', typeInput.value);
+            
+            if (eventIdInput.value) {
+                formData.append('eventId', eventIdInput.value);
+            }
+            
+            logDebug('📤 Sending request to /registrations/upload...');
+            
+            // Show loading state
+            loadingDiv.style.display = 'block';
+            resultDiv.style.display = 'none';
+            submitBtn.disabled = true;
+            submitBtn.textContent = '⏳ Uploading...';
+            
+            try {
+                const startTime = Date.now();
+                
+                const response = await fetch('/registrations/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const duration = Date.now() - startTime;
+                logDebug(`⏱️ Request completed in ${duration}ms`);
+                logDebug(`📡 Response Status: ${response.status} ${response.statusText}`);
+                
+                // Try to parse response as JSON
+                let data;
+                const contentType = response.headers.get('content-type');
+                logDebug(`📄 Response Content-Type: ${contentType}`);
+                
+                if (contentType && contentType.includes('application/json')) {
+                    data = await response.json();
+                    logDebug('📨 Response Data:', data);
+                } else {
+                    const textData = await response.text();
+                    logDebug('📨 Response Text:', textData);
+                    data = { error: `Server returned non-JSON response: ${textData}` };
+                }
+                
+                if (response.ok) {
+                    const successMessage = `✅ SUCCESS!\n\n📊 Upload Summary:\n• Processed: ${data.count || 'Unknown'} registrations\n• Type: ${typeInput.value}\n• File: ${fileName}\n• Size: ${debugInfo.fileSize}\n\n💬 Server Message:\n${data.message || 'Upload completed successfully'}`;
+                    
+                    showResult(successMessage, 'success');
+                    
+                    if (data.registrations && data.registrations.length > 0) {
+                        logDebug('✅ Processed Registrations:', data.registrations);
+                    }
+                    
+                    // Reset form on success
+                    document.getElementById('uploadForm').reset();
+                    document.querySelector('.file-info').textContent = 'Only Excel files are accepted';
+                    
+                } else {
+                    let errorMessage = `❌ UPLOAD FAILED\n\n🚨 Error Details:\n`;
+                    
+                    if (response.status === 400) {
+                        errorMessage += `• Status: 400 Bad Request\n• Issue: ${data.error || 'Invalid request data'}\n\n`;
+                        
+                        if (data.error && data.error.includes('Required part \'file\' is not present')) {
+                            errorMessage += `🔍 Troubleshooting:\n• The file was not received by the server\n• Check if the file input is working properly\n• Try selecting the file again`;
+                        } else if (data.error && data.error.includes('Excel')) {
+                            errorMessage += `🔍 Troubleshooting:\n• Make sure the file is a valid Excel file (.xlsx or .xls)\n• Check if the file is corrupted\n• Try with a different Excel file`;
+                        }
+                        
+                    } else if (response.status === 500) {
+                        errorMessage += `• Status: 500 Internal Server Error\n• Issue: ${data.error || 'Server processing error'}\n\n🔍 Possible causes:\n• Invalid Excel file format\n• Missing required columns in Excel\n• User email not found in database\n• Date/time parsing issues`;
+                        
+                    } else {
+                        errorMessage += `• Status: ${response.status}\n• Issue: ${data.error || 'Unknown error'}`;
+                    }
+                    
+                    showResult(errorMessage, 'error');
+                }
+                
+            } catch (error) {
+                logDebug('🚨 Network/Fetch Error:', error);
+                
+                let networkErrorMsg = `❌ NETWORK ERROR\n\n🌐 Connection Issue:\n• ${error.message}\n\n🔍 Troubleshooting:\n`;
+                
+                if (error.name === 'TypeError' && error.message.includes('fetch')) {
+                    networkErrorMsg += `• Server might not be running on port 3000\n• Check if backend application is started\n• Verify the URL is correct`;
+                } else {
+                    networkErrorMsg += `• Check your internet connection\n• Verify server is accessible\n• Try refreshing the page`;
+                }
+                
+                showResult(networkErrorMsg, 'error');
+                
+            } finally {
+                // Hide loading state
+                loadingDiv.style.display = 'none';
+                submitBtn.disabled = false;
+                submitBtn.textContent = '📤 Upload File';
+            }
+        });
+        
+        function showResult(message, type) {
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = message;
+            resultDiv.className = `result ${type}`;
+            resultDiv.style.display = 'block';
+            
+            // Add debug toggle button
+            if (document.getElementById('debugInfo').innerHTML) {
+                const toggleBtn = document.createElement('button');
+                toggleBtn.className = 'debug-toggle';
+                toggleBtn.textContent = debugMode ? 'Hide Debug Info' : 'Show Debug Info';
+                toggleBtn.onclick = toggleDebug;
+                resultDiv.appendChild(toggleBtn);
+            }
+        }
+        
+        function logDebug(message, data = null) {
+            const debugDiv = document.getElementById('debugInfo');
+            const timestamp = new Date().toLocaleTimeString();
+            
+            let logEntry = `[${timestamp}] ${message}`;
+            if (data) {
+                logEntry += '\n' + JSON.stringify(data, null, 2);
+            }
+            logEntry += '\n\n';
+            
+            debugDiv.innerHTML += logEntry;
+            
+            if (debugMode) {
+                debugDiv.style.display = 'block';
+            }
+        }
+        
+        function toggleDebug() {
+            debugMode = !debugMode;
+            const debugDiv = document.getElementById('debugInfo');
+            debugDiv.style.display = debugMode ? 'block' : 'none';
+            
+            const toggleBtn = document.querySelector('.debug-toggle');
+            if (toggleBtn) {
+                toggleBtn.textContent = debugMode ? 'Hide Debug Info' : 'Show Debug Info';
+            }
+        }
+        
+        // File input change handler to show selected file info
+        document.getElementById('file').addEventListener('change', function(e) {
+            const fileInfo = document.querySelector('.file-info');
+            if (e.target.files[0]) {
+                const file = e.target.files[0];
+                const sizeInMB = (file.size / (1024 * 1024)).toFixed(2);
+                fileInfo.textContent = `Selected: ${file.name} (${sizeInMB} MB)`;
+            } else {
+                fileInfo.textContent = 'Only Excel files are accepted';
+            }
+        });
+    </script>
+</body>
+</html>
